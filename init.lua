@@ -1,5 +1,5 @@
 
-SSID = "MY_WIFI"
+SSID = "MY_SSID"
 WPA_KEY = "MY_KEY"
 
 MAX_CONNECT_ATTEMPTS = 100
@@ -9,9 +9,9 @@ function make_get_sysname_response(sysname, comm_len, community, request_id, var
     sysname_len = string.len(sysname)
     print(sysname_len)
     pack_str = '> I1 I1 I1 I1 I1 I1 I1 c' .. comm_len .. 'I1 I1 I1 I1 I4 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I2 I4 I4 I1 I1 c' .. sysname_len
-    return struct.pack(pack_str, 0x30, 0x32, 0x02, 0x01, 0x00, 0x04, 0x09,
-        community, 0xA2, 0x22, 0x02, 0x04, request_id, 0x02, 0x01, 0x00, 0x02,
-        0x01, 0x00, 0x30, 0x14, 0x30, 0x12, varbind, obj_hi, obj_lo, 0x04, 0x06, sysname)
+    return struct.pack(pack_str, 0x30, 0x2C + sysname_len, 0x02, 0x01, 0x00, 0x04, 0x09,
+        community, 0xA2, 0x1C + sysname_len, 0x02, 0x04, request_id, 0x02, 0x01, 0x00, 0x02,
+        0x01, 0x00, 0x30, 0x0E + sysname_len, 0x30, 0x0C + sysname_len, varbind, obj_hi, obj_lo, 0x04, sysname_len, sysname)
 end
 
 function make_snmp_unpackstring(data)
@@ -35,7 +35,7 @@ function start_server()
       print(string.format("obj_hi: %x", obj_hi))
       print(string.format("obj_lo: %x", obj_lo))
 
-      return_str = make_get_sysname_response('monitor1', comm_len, 'C@v3T33th', req_id, varbind, obj_hi, obj_lo)
+      return_str = make_get_sysname_response('monitor1', comm_len, 'publicpub', req_id, varbind, obj_hi, obj_lo)
       s:send(port, ip, return_str)
 	end)
 end
