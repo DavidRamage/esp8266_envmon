@@ -7,9 +7,10 @@ CONNECT_ATTEMPT = 0
 
 function make_get_sysname_response(sysname, comm_len, community, request_id, varbind, obj_hi, obj_lo)
     sysname_len = string.len(sysname)
+    community_len = string.len(community)
     print(sysname_len)
     pack_str = '> I1 I1 I1 I1 I1 I1 I1 c' .. comm_len .. 'I1 I1 I1 I1 I4 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I2 I4 I4 I1 I1 c' .. sysname_len
-    return struct.pack(pack_str, 0x30, 0x2C + sysname_len, 0x02, 0x01, 0x00, 0x04, 0x09,
+    return struct.pack(pack_str, 0x30, 0x23 + sysname_len + community_len, 0x02, 0x01, 0x00, 0x04, community_len,
         community, 0xA2, 0x1C + sysname_len, 0x02, 0x04, request_id, 0x02, 0x01, 0x00, 0x02,
         0x01, 0x00, 0x30, 0x0E + sysname_len, 0x30, 0x0C + sysname_len, varbind, obj_hi, obj_lo, 0x04, sysname_len, sysname)
 end
@@ -34,8 +35,9 @@ function start_server()
       print(string.format("varbind: %x", varbind))
       print(string.format("obj_hi: %x", obj_hi))
       print(string.format("obj_lo: %x", obj_lo))
+      print(string.format("received community: %s", comm_string))
 
-      return_str = make_get_sysname_response('monitor1', comm_len, 'publicpub', req_id, varbind, obj_hi, obj_lo)
+      return_str = make_get_sysname_response('monitor1', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
       s:send(port, ip, return_str)
 	end)
 end
