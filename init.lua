@@ -36,9 +36,15 @@ function start_server()
       print(string.format("obj_hi: %x", obj_hi))
       print(string.format("obj_lo: %x", obj_lo))
       print(string.format("received community: %s", comm_string))
-
-      return_str = make_get_sysname_response('monitor1', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
-      s:send(port, ip, return_str)
+      if (obj_hi == 0x2b060102 and obj_lo == 0x1010500) then
+        -- 1.3.6.1.2.1.1.5.0 - sysname
+        return_str = make_get_sysname_response('monitor1', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
+        s:send(port, ip, return_str)
+      elseif (obj_hi == 0x2b060102 and obj_lo == 0x1010600) then
+        -- 1.3.6.1.2.1.1.6.0 - syslocation
+        return_str = make_get_sysname_response('someplace good', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
+        s:send(port, ip, return_str)
+      end
 	end)
 end
 
