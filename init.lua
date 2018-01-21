@@ -63,6 +63,10 @@ function make_snmp_unpackstring(data)
         print("making the humongo packet")
         output_str = '> I1 I1 I3 I1 I1 c' .. comm_len  .. 'I1 I1 I2 I4 I8 I2 I2 I6 I6 I3'
         return output_str
+    elseif (string.len(data) == 43) then
+        print("standard mib walk packet")
+        output_str = '> I1 I1 I1 I4 c' .. comm_len .. 'I4 I4 I8 I4 I4 I3'
+        return output_str
     else
         return nil
     end
@@ -120,7 +124,22 @@ function start_server()
               return_str = make_get_temp_name_response('Ambient', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
               s:send(port, ip, return_str)
             end
-        end
+      elseif (string.len(data) == 43) then
+        print("we have a snmpgetnext packet")
+        snmp_unpackstr = make_snmp_unpackstring(data)
+        asn_header, pdu_len, small_stuff, stuff, community_str, something, request_id, error_data, varbind_hi, varbind_lo, varbind_bottom = struct.unpack(snmp_unpackstr, data)
+        print(string.format("asn header: 0x%x", asn_header))
+        print(string.format("pdu_len: 0x%x", pdu_len))
+        print(string.format("small_stuff: 0x%x", small_stuff))
+        print(string.format("stuff: 0x%x", stuff))
+        print(string.format("community_string: %s", community_str))
+        print(string.format("something: 0x%x", something))
+        print(string.format("request_id: 0x%x", request_id))
+        print(string.format("error_info: 0x%x", error_data))
+        print(string.format("varbind_hi: 0x%x", varbind_hi))
+        print(string.format("varbind_lo: 0x%x", varbind_lo))
+        print(string.format("varbind_bottom: 0x%x", varbind_bottom))
+      end
 	end)
 end
 
