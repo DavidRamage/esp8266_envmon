@@ -8,6 +8,16 @@ PIN_18B20 = 4
 ADDR_18B20 = nil
 TEMPERATURE = 0
 
+function make_get_next_response_sysname(community, request_id, sysname)
+   community_len = string.len(community)
+   sysname_len = string.len(sysname)
+   pack_str = '> I4 I1 I1 I1 c' .. community_len .. 'I4 I4 I3 I3 I1 I1 I1 I1 I1 I1 I4 I4 I1 I1 c' .. sysname_len
+   return struct.pack(pack_str, 0x30340201, 0x00, 0x04, community_len, community,
+   0xA2240204, request_id, 0x020100, 0x020100, 0x30, 0x0E + sysname_len, 0x30,
+   0x0C + sysname_len, 0x06, sysname_len, 0x2b060102, 01010500, 0x04, sysname_len,
+   sysname)
+end
+
 function make_temperature_value_response(comm_len, community, request_id)
     print("we sure are in the function!")
     print("comm_len" .. comm_len)
@@ -139,6 +149,11 @@ function start_server()
         print(string.format("varbind_hi: 0x%x", varbind_hi))
         print(string.format("varbind_lo: 0x%x", varbind_lo))
         print(string.format("varbind_bottom: 0x%x", varbind_bottom))
+        if (varbind_hi == 0x30090605 and varbind_lo == 0x2b060102 and varbind_bottom == 0x10500) then
+            print("sending sysname response to getnext")
+            return_str = make_get_next_response_sysname(community_str, request_id, 'monitor1')
+            s:send(port, ip, return_str)
+        end
       end
 	end)
 end
