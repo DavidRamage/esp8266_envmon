@@ -3,10 +3,13 @@ WIFI_CONFIG.ssid = "MY_SSID"
 WIFI_CONFIG.pwd = "MY_PASSWORD"
 MAX_CONNECT_ATTEMPTS = 100
 CONNECT_ATTEMPT = 0
-
 PIN_18B20 = 4 
 ADDR_18B20 = nil
 TEMPERATURE = 0
+SNMP_WALK = false
+function noop()
+    return nil
+end
 
 function make_get_next_response_sysname(community, request_id, sysname)
    community_len = string.len(community)
@@ -100,9 +103,14 @@ function start_server()
         print(string.format("received community: %s", comm_string))
         if (obj_hi == 0x2b060102 and obj_lo == 0x1010500) then
           -- 1.3.6.1.2.1.1.5.0 - sysname
-          return_str = make_get_sysname_response('monitor1', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
-          s:send(port, ip, return_str)
-        elseif (obj_hi == 0x2b060102 and obj_lo == 0x1010600) then
+          if  req_type == 0xa1 then
+            return_str = make_get_sysname_response('someplace good', comm_len, comm_string, req_id, varbind, 0x2b060102, 0x1010600)
+            s:send(port, ip, return_str)
+          else
+            return_str = make_get_sysname_response('monitor1', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
+            s:send(port, ip, return_str)
+          end
+        elseif (obj_hi == 0x2b060102 and obj_lo == 0x1010600 and req_type == 0xa0) then
           -- 1.3.6.1.2.1.1.6.0 - syslocation
           return_str = make_get_sysname_response('someplace good', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
           s:send(port, ip, return_str)
@@ -153,6 +161,7 @@ function start_server()
             print("sending sysname response to getnext")
             return_str = make_get_next_response_sysname(community_str, request_id, 'monitor1')
             s:send(port, ip, return_str)
+            SNMP_WALK = true
         end
       end
 	end)
