@@ -6,9 +6,12 @@ CONNECT_ATTEMPT = 0
 PIN_18B20 = 4 
 ADDR_18B20 = nil
 TEMPERATURE = 0
-SNMP_WALK = false
-function noop()
-    return nil
+
+function make_oid_response(community, request_id)
+    community_len = string.len(community)
+    pack_str = '> I1 I1 I3 I2 c' .. community_len .. 'I4 I4 I2 I2 I2 I2 I2 I2 I4 I4 I2 I4 I4 I2'
+    return struct.pack(pack_str, 0x30, 0x2D + community_len, 0x020100, 0x0409, community, 0xA2260204, request_id,
+    0x0201, 0x0002, 0x0100, 0x3018, 0x3016, 0x0608, 0x2b060102, 0x01010200, 0x060A, 0x2B060104, 0x01BF0803, 0x020A)
 end
 
 function make_get_next_response_sysname(community, request_id, sysname)
@@ -114,6 +117,13 @@ function start_server()
           -- 1.3.6.1.2.1.1.6.0 - syslocation
           return_str = make_get_sysname_response('someplace good', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
           s:send(port, ip, return_str)
+        elseif (obj_hi == 0x2b060102 and obj_lo == 0x1010100 and req_type == 0xa0) then
+          -- 1.3.6.1.2.1.1.1.0 - os
+          return_str = make_get_sysname_response('Environment Monitor 0.01a', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
+          s:send(port, ip, return_str)
+        elseif (obj_hi == 0x2b060102 and obj_lo == 0x1010200 and req_type == 0xa0) then
+          return_str = make_oid_response( comm_string, req_id)
+          s:send(port, ip, return_str)
         end
       elseif (string.len(data) == 51) then
         print("we're dealing with the megapacket now!")
@@ -161,7 +171,6 @@ function start_server()
             print("sending sysname response to getnext")
             return_str = make_get_next_response_sysname(community_str, request_id, 'monitor1')
             s:send(port, ip, return_str)
-            SNMP_WALK = true
         end
       end
 	end)
