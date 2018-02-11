@@ -25,10 +25,6 @@ function make_get_next_response_sysname(community, request_id, sysname)
 end
 
 function make_temperature_value_response(comm_len, community, request_id)
-    print("we sure are in the function!")
-    print("comm_len" .. comm_len)
-    print("community" .. community)
-    print("request id" .. request_id)
     community_len = string.len(community)
     pack_str = '> I1 I1 I1 I1 I1 I1 I1 c' .. comm_len .. 'I1 I1 I1 I1 I4 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 i2'
     return struct.pack(pack_str, 0x30, 0x2A + community_len, 0x02, 0x01, 0x00, 0x04, community_len,
@@ -38,9 +34,6 @@ function make_temperature_value_response(comm_len, community, request_id)
 end
 
 function make_temperature_integer_response(comm_len, community, request_id)
-    print("comm_len" .. comm_len)
-    print("community" .. community)
-    print("request id" .. request_id)
     community_len = string.len(community)
     pack_str = '> I1 I1 I1 I1 I1 I1 I1 c' .. comm_len .. 'I1 I1 I1 I1 I4 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1'
     return struct.pack(pack_str, 0x30, 0x29 + community_len, 0x02, 0x01, 0x00, 0x04, community_len,
@@ -53,17 +46,15 @@ end
 function make_get_temp_name_response(temp_name, comm_len, community, request_id, varbind, obj_hi, obj_lo)
     tempname_len = string.len(temp_name)
     community_len = string.len(community)
-    print(tempname_len)
     pack_str = '> I1 I1 I1 I1 I1 I1 I1 c' .. comm_len .. 'I1 I1 I1 I1 I4 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I2 I1 I1 I4 I1 I1 I4 I1 I1 I1 c' .. tempname_len
     return struct.pack(pack_str, 0x30, 0x28 + tempname_len + community_len, 0x02, 0x01, 0x00, 0x04, community_len,
         community, 0xA2, 0x21 + tempname_len, 0x02, 0x04, request_id, 0x02, 0x01, 0x00, 0x02,
-        0x01, 0x00, 0x30, 0x13 + tempname_len, 0x30, 0x11 + tempname_len, varbind, 0x02, 0x06, obj_hi, 0x65, 0x0d, obj_lo, 0x0d, 0x04, tempname_len, temp_name)
+        0x01, 0x00, 0x30, 0x13 + tempname_len, 0x30, 0x11 + tempname_len, varbind, 0x2b, 0x06, obj_hi, 0x65, 0x0d, obj_lo, 0x0d, 0x04, tempname_len, temp_name)
 end
 
 function make_get_sysname_response(sysname, comm_len, community, request_id, varbind, obj_hi, obj_lo)
     sysname_len = string.len(sysname)
     community_len = string.len(community)
-    print(sysname_len)
     pack_str = '> I1 I1 I1 I1 I1 I1 I1 c' .. comm_len .. 'I1 I1 I1 I1 I4 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I2 I4 I4 I1 I1 c' .. sysname_len
     return struct.pack(pack_str, 0x30, 0x23 + sysname_len + community_len, 0x02, 0x01, 0x00, 0x04, community_len,
         community, 0xA2, 0x1C + sysname_len, 0x02, 0x04, request_id, 0x02, 0x01, 0x00, 0x02,
@@ -76,12 +67,18 @@ function make_snmp_unpackstring(data)
         output_str = '> I1 I1 I3 I1 I1 c' .. comm_len  .. 'I1 I1 I2 I4 I8 I2 I2 I4 I4'
         return output_str
     elseif (string.len(data) == 51) then
-        print("making the humongo packet")
-        output_str = '> I1 I1 I3 I1 I1 c' .. comm_len  .. 'I1 I1 I2 I4 I8 I2 I2 I6 I6 I3'
+        output_str = '> I1 I1 I3 I1 I1 c' .. comm_len  .. ' I2 I2 I4 I8 I2 I2 I6 I6 I3'
         return output_str
     elseif (string.len(data) == 43) then
-        print("standard mib walk packet")
         output_str = '> I1 I1 I1 I4 c' .. comm_len .. 'I4 I4 I8 I4 I4 I3'
+        return output_str
+    elseif (string.len(data) == 47) then
+        print("lm sensors mib walk packet")
+        output_str = '>  I1 I1 I3 I1 I1 c' .. comm_len .. 'I4 I4 I2 I1 I2 I1 I4 I4 I4 I4'
+        return output_str
+    elseif (string.len(data) == 49) then
+        print("lm sensors walk packet")
+        output_str = '> I1 I1 I3 I1 I1 c' .. comm_len .. 'I2 I2 I4 I10 I4 I4 I4 I3'
         return output_str
     else
         return nil
@@ -93,17 +90,11 @@ function start_server()
    udpSocket = net:createUDPSocket()
    udpSocket:listen(161, ip_address)
    udpSocket:on("receive", function(s, data, port, ip)
-      print(string.len(data))
+    
+      print(string.format("I got a packet with length %i", string.len(data)))
       if (string.len(data) == 46) then 
       snmp_unpackstr = make_snmp_unpackstring(data)
         asn_header, pdu_len, version, comm_name, comm_len, comm_string, req_type, req_len, dgaf1, req_id, dgaf2, varbind_list, varbind, obj_hi, obj_lo = struct.unpack(snmp_unpackstr, data)
-        print(string.format("request type: %x request length: %x", req_type, req_len ))
-        print(string.format("request id: %x", req_id))
-        print(string.format("varbind_list: %x", varbind_list))
-        print(string.format("varbind: %x", varbind))
-        print(string.format("obj_hi: %x", obj_hi))
-        print(string.format("obj_lo: %x", obj_lo))
-        print(string.format("received community: %s", comm_string))
         if (obj_hi == 0x2b060102 and obj_lo == 0x1010500) then
           -- 1.3.6.1.2.1.1.5.0 - sysname
           if  req_type == 0xa1 then
@@ -126,53 +117,76 @@ function start_server()
           s:send(port, ip, return_str)
         end
       elseif (string.len(data) == 51) then
-        print("we're dealing with the megapacket now!")
         snmp_unpackstr = make_snmp_unpackstring(data)
-        print(snmp_unpackstr)
-        print("we have the larger sized packet")
-        asn_header, pdu_len, version, comm_name, comm_len, comm_string, req_type, req_len, dgaf1, req_id, dgaf2, varbind_list, varbind, obj_hi, obj_lo, obj_really_low = struct.unpack(snmp_unpackstr, data)
-        print(string.format("request type: %x request length: %x", req_type, req_len ))
-        print(string.format("request id: %x", req_id))
-        print(string.format("varbind_list: %x", varbind_list))
-        print(string.format("varbind: %x", varbind))
-        print(string.format("obj_hi: %x", obj_hi))
-        print(string.format("obj_lo: %x", obj_lo))
-        print(string.format("received community: %s", comm_string))
+
+        -- output_str = '> I1 I1 I3 I1 I1 c' .. comm_len  .. ' I1 I1 I2 I4 I8 I2 I2 I6 I6 I3'
+        asn_header, pdu_len, version, comm_name, comm_len, comm_string, req_type, dgaf1, req_id, dgaf2, varbind_list, varbind, obj_hi, obj_lo, obj_really_low = struct.unpack(snmp_unpackstr, data)
+        print (string.format("0x%x", req_type))
+        print (string.format("obj_hi: 0x%x, obj_low: 0x%x, obj_really_low: 0x%x", obj_hi, obj_lo, obj_really_low))
             if (obj_hi == 0x104018f and obj_lo == 0x10020101) then
               -- 1.3.6.1.4.1.2021.13.16.2.1.1.13
-              return_str = make_temperature_integer_response(comm_len, comm_string, req_id)
-              s:send(port, ip, return_str)
+                if (req_type == 0xa021) then
+                    return_str = make_temperature_integer_response(comm_len, comm_string, req_id)
+                    s:send(port, ip, return_str)
+                elseif (req_type == 0xa121) then
+                    return_str = make_get_temp_name_response('Ambient', comm_len, comm_string, req_id, varbind, 0x104018f, 0x10020102)
+                    s:send(port, ip, return_str)
+                end
             elseif (obj_hi == 0x104018f and obj_lo == 0x10020103) then
               -- 1.3.6.1.4.1.2021.13.16.2.1.3.13
-              GET_18B20_TEMP()
-              return_str = make_temperature_value_response(comm_len, comm_string, req_id)
-              s:send(port, ip, return_str)
+              if (req_type == 0x021) then
+                GET_18B20_TEMP()
+                return_str = make_temperature_value_response(comm_len, comm_string, req_id)
+                s:send(port, ip, return_str)
+              end
             elseif (obj_hi == 0x104018f and obj_lo == 0x10020102) then
               -- 1.3.6.1.4.1.2021.13.16.2.1.2.13 
-              return_str = make_get_temp_name_response('Ambient', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
-              s:send(port, ip, return_str)
+              if (req_type == 0xa021) then
+                return_str = make_get_temp_name_response('Ambient', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
+                s:send(port, ip, return_str)
+              elseif (req_type == 0xa121) then
+                GET_18B20_TEMP()
+                return_str = make_temperature_value_response(comm_len, comm_string, req_id)
+                s:send(port, ip, return_str)
+              end
             end
+
       elseif (string.len(data) == 43) then
         print("we have a snmpgetnext packet")
         snmp_unpackstr = make_snmp_unpackstring(data)
         asn_header, pdu_len, small_stuff, stuff, community_str, something, request_id, error_data, varbind_hi, varbind_lo, varbind_bottom = struct.unpack(snmp_unpackstr, data)
-        print(string.format("asn header: 0x%x", asn_header))
-        print(string.format("pdu_len: 0x%x", pdu_len))
-        print(string.format("small_stuff: 0x%x", small_stuff))
-        print(string.format("stuff: 0x%x", stuff))
-        print(string.format("community_string: %s", community_str))
-        print(string.format("something: 0x%x", something))
-        print(string.format("request_id: 0x%x", request_id))
-        print(string.format("error_info: 0x%x", error_data))
-        print(string.format("varbind_hi: 0x%x", varbind_hi))
-        print(string.format("varbind_lo: 0x%x", varbind_lo))
-        print(string.format("varbind_bottom: 0x%x", varbind_bottom))
         if (varbind_hi == 0x30090605 and varbind_lo == 0x2b060102 and varbind_bottom == 0x10500) then
             print("sending sysname response to getnext")
             return_str = make_get_next_response_sysname(community_str, request_id, 'monitor1')
             s:send(port, ip, return_str)
         end
+      elseif (string.len(data) == 47) then
+        print("walk packet for the sensors mib")
+        snmp_unpackstr = make_snmp_unpackstring(data)
+        asn_header, pdu_len, small_stuff, stuff, other_stuff, community_str, req_type, req_id, placeholder_1, error_status, placeholder_2, error_index, placeholder_3, obj_hi, obj_mid, obj_lo = struct.unpack(snmp_unpackstr, data)
+        if (req_type ==  0xa11d0204 and obj_hi == 0x06092b06 and obj_mid == 0x0104018f and obj_lo == 0x0650d1005) then
+                print("sending the packet")
+              return_str = make_temperature_integer_response(other_stuff, community_str, req_id)
+              s:send(port, ip, return_str)
+        end
+      elseif (string.len(data) == 49) then
+        --length of a getnext for 1.3.6.1.4.1.2021.13.16.2.1
+        --output_str = '> I1 I1 I3 I1 I1 c' .. com_len
+        snmp_unpackstr = make_snmp_unpackstring(data)
+        asn_header, pdu_len, small_stuff, stuff, other_stuff, community_str, req_type, nonsense, req_id, nonsense, obj_hi, obj_med, obj_lo, obj_bottom = struct.unpack(snmp_unpackstr, data)
+        print(string.format("community str: %s", community_str))
+        print(string.format("req type: 0x%x", req_type))
+        print(string.format("req id: 0x%x", req_id))
+        print(string.format("obj_hi: 0x%x", obj_hi))
+        print(string.format("obj_med: 0x%x", obj_med))
+        print(string.format("obj_lo: 0x%x", obj_lo))
+        print(string.format("obj_bottom: 0x%x", obj_bottom))
+        if (obj_hi == 0x60b2b06 and obj_med == 0x104018f and obj_lo == 0x650d1002 and obj_bottom == 0x10500) then
+            return_str = make_temperature_integer_response(string.len(community_str), community_str, req_id)
+            s:send(port, ip, return_str)
+        end
       end
+
 	end)
 end
 
