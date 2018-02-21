@@ -80,6 +80,10 @@ function make_snmp_unpackstring(data)
         print("lm sensors walk packet")
         output_str = '> I1 I1 I3 I1 I1 c' .. comm_len .. 'I2 I2 I4 I10 I4 I4 I4 I3'
         return output_str
+    elseif (string.len(data) == 50) then
+        
+        output_str = '> I1 I1 I3 I1 I1 c' .. comm_len .. 'I2 I2 I4 I10 I4 I4 I4 I3'
+        return output_str
     else
         return nil
     end
@@ -116,6 +120,27 @@ function start_server()
           return_str = make_oid_response( comm_string, req_id)
           s:send(port, ip, return_str)
         end
+
+      elseif (string.len(data) == 50) then
+
+        snmp_unpackstr = make_snmp_unpackstring(data)
+        asn_header, pdu_len, version, comm_name, comm_len, comm_string, req_type, dgaf1, req_id, dgaf2, varbind_list, varbind, obj_hi, obj_lo, obj_really_low = struct.unpack(snmp_unpackstr, data)
+        print (string.format("0x%x", req_type))
+        print (string.format("obj_hi: 0x%x, obj_low: 0x%x, obj_really_low: 0x%x", obj_hi, obj_lo, obj_really_low))
+        if (req_type == 0x0a120) then
+            if (obj_hi == 0x650d1002 and obj_lo == 0x10105 and obj_really_low == 0x32) then
+                return_str = make_temperature_integer_response(comm_len, comm_string, req_id)
+                s:send(port, ip, return_str)
+            elseif (obj_hi == 0x650d1002 and obj_lo == 0x10205 and obj_really_low == 0x32) then
+                -- varbind is the problem
+                return_str = make_get_temp_name_response('Ambient', comm_len, comm_string, req_id, 0x3018060d, 0x104018f, 0x10020102)
+                s:send(port, ip, return_str)
+            elseif (obj_hi == 0x650d1002 and obj_lo == 0x10305 and obj_really_low == 0x32) then
+                GET_18B20_TEMP()
+                return_str = make_temperature_value_response(comm_len, comm_string, req_id)
+                s:send(port, ip, return_str)
+            end
+        end
       elseif (string.len(data) == 51) then
         snmp_unpackstr = make_snmp_unpackstring(data)
 
@@ -134,7 +159,7 @@ function start_server()
                 end
             elseif (obj_hi == 0x104018f and obj_lo == 0x10020103) then
               -- 1.3.6.1.4.1.2021.13.16.2.1.3.13
-              if (req_type == 0x021) then
+              if (req_type == 0xa021 or (req_type == 0xa121 and obj_really_low == 0x32)) then
                 GET_18B20_TEMP()
                 return_str = make_temperature_value_response(comm_len, comm_string, req_id)
                 s:send(port, ip, return_str)
@@ -174,13 +199,6 @@ function start_server()
         --output_str = '> I1 I1 I3 I1 I1 c' .. com_len
         snmp_unpackstr = make_snmp_unpackstring(data)
         asn_header, pdu_len, small_stuff, stuff, other_stuff, community_str, req_type, nonsense, req_id, nonsense, obj_hi, obj_med, obj_lo, obj_bottom = struct.unpack(snmp_unpackstr, data)
-        print(string.format("community str: %s", community_str))
-        print(string.format("req type: 0x%x", req_type))
-        print(string.format("req id: 0x%x", req_id))
-        print(string.format("obj_hi: 0x%x", obj_hi))
-        print(string.format("obj_med: 0x%x", obj_med))
-        print(string.format("obj_lo: 0x%x", obj_lo))
-        print(string.format("obj_bottom: 0x%x", obj_bottom))
         if (obj_hi == 0x60b2b06 and obj_med == 0x104018f and obj_lo == 0x650d1002 and obj_bottom == 0x10500) then
             return_str = make_temperature_integer_response(string.len(community_str), community_str, req_id)
             s:send(port, ip, return_str)
