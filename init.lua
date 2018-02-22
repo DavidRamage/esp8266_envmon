@@ -6,14 +6,13 @@ CONNECT_ATTEMPT = 0
 PIN_18B20 = 4 
 ADDR_18B20 = nil
 TEMPERATURE = 0
-
+COMMUNITY = "MY_COMMUNITY_STRING"
 function make_oid_response(community, request_id)
     community_len = string.len(community)
     pack_str = '> I1 I1 I3 I2 c' .. community_len .. 'I4 I4 I2 I2 I2 I2 I2 I2 I4 I4 I2 I4 I4 I2'
     return struct.pack(pack_str, 0x30, 0x2D + community_len, 0x020100, 0x0409, community, 0xA2260204, request_id,
     0x0201, 0x0002, 0x0100, 0x3018, 0x3016, 0x0608, 0x2b060102, 0x01010200, 0x060A, 0x2B060104, 0x01BF0803, 0x020A)
 end
-
 function make_get_next_response_sysname(community, request_id, sysname)
    community_len = string.len(community)
    sysname_len = string.len(sysname)
@@ -23,7 +22,6 @@ function make_get_next_response_sysname(community, request_id, sysname)
    0x0C + sysname_len, 0x06, sysname_len, 0x2b060102, 0x0101, 0x0500, 0x04, sysname_len,
    sysname)
 end
-
 function make_temperature_value_response(comm_len, community, request_id)
     community_len = string.len(community)
     pack_str = '> I1 I1 I1 I1 I1 I1 I1 c' .. comm_len .. 'I1 I1 I1 I1 I4 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 i2'
@@ -32,7 +30,6 @@ function make_temperature_value_response(comm_len, community, request_id)
     0x00, 0x30, 0x15, 0x30, 0x13, 0x06, 0x0d, 0x2b, 0x06, 0x01, 0x04, 0x01, 0x8f, 0x65, 0x0d, 0x10,
     0x02, 0x01, 0x03, 0x0d, 0x42, 0x02, TEMPERATURE)
 end
-
 function make_temperature_integer_response(comm_len, community, request_id)
     community_len = string.len(community)
     pack_str = '> I1 I1 I1 I1 I1 I1 I1 c' .. comm_len .. 'I1 I1 I1 I1 I4 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1'
@@ -42,7 +39,6 @@ function make_temperature_integer_response(comm_len, community, request_id)
     0x02, 0x01, 0x01, 0x0d, 0x02, 0x01, 0x0d, 0x01, 0x0d)
 
 end
-
 function make_get_temp_name_response(temp_name, comm_len, community, request_id, varbind, obj_hi, obj_lo)
     tempname_len = string.len(temp_name)
     community_len = string.len(community)
@@ -51,7 +47,6 @@ function make_get_temp_name_response(temp_name, comm_len, community, request_id,
         community, 0xA2, 0x21 + tempname_len, 0x02, 0x04, request_id, 0x02, 0x01, 0x00, 0x02,
         0x01, 0x00, 0x30, 0x13 + tempname_len, 0x30, 0x11 + tempname_len, varbind, 0x2b, 0x06, obj_hi, 0x65, 0x0d, obj_lo, 0x0d, 0x04, tempname_len, temp_name)
 end
-
 function make_get_sysname_response(sysname, comm_len, community, request_id, varbind, obj_hi, obj_lo)
     sysname_len = string.len(sysname)
     community_len = string.len(community)
@@ -60,43 +55,36 @@ function make_get_sysname_response(sysname, comm_len, community, request_id, var
         community, 0xA2, 0x1C + sysname_len, 0x02, 0x04, request_id, 0x02, 0x01, 0x00, 0x02,
         0x01, 0x00, 0x30, 0x0E + sysname_len, 0x30, 0x0C + sysname_len, varbind, obj_hi, obj_lo, 0x04, sysname_len, sysname)
 end
-
 function make_snmp_unpackstring(data)
     asn_header, pdu_len, version, comm_name, comm_len, excess = struct.unpack('> I1 I1 I3 I1 I1 s', data)  
-    if (string.len(data) == 46) then
+    if (string.len(data) == (37 + string.len(COMMUNITY))) then
         output_str = '> I1 I1 I3 I1 I1 c' .. comm_len  .. 'I1 I1 I2 I4 I8 I2 I2 I4 I4'
         return output_str
-    elseif (string.len(data) == 51) then
+    elseif (string.len(data) == (42 + string.len(COMMUNITY))) then
         output_str = '> I1 I1 I3 I1 I1 c' .. comm_len  .. ' I2 I2 I4 I8 I2 I2 I6 I6 I3'
         return output_str
-    elseif (string.len(data) == 43) then
+    elseif (string.len(data) == (34 + string.len(COMMUNITY))) then
         output_str = '> I1 I1 I1 I4 c' .. comm_len .. 'I4 I4 I8 I4 I4 I3'
         return output_str
-    elseif (string.len(data) == 47) then
-        print("lm sensors mib walk packet")
+    elseif (string.len(data) == (38 + string.len(COMMUNITY))) then
         output_str = '>  I1 I1 I3 I1 I1 c' .. comm_len .. 'I4 I4 I2 I1 I2 I1 I4 I4 I4 I4'
         return output_str
-    elseif (string.len(data) == 49) then
-        print("lm sensors walk packet")
+    elseif (string.len(data) == (40 + string.len(COMMUNITY))) then
         output_str = '> I1 I1 I3 I1 I1 c' .. comm_len .. 'I2 I2 I4 I10 I4 I4 I4 I3'
         return output_str
-    elseif (string.len(data) == 50) then
-        
+    elseif (string.len(data) == (41 + string.len(COMMUNITY))) then
         output_str = '> I1 I1 I3 I1 I1 c' .. comm_len .. 'I2 I2 I4 I10 I4 I4 I4 I3'
         return output_str
     else
         return nil
     end
 end
-
 function start_server()
    print("starting the server")
    udpSocket = net:createUDPSocket()
    udpSocket:listen(161, ip_address)
    udpSocket:on("receive", function(s, data, port, ip)
-    
-      print(string.format("I got a packet with length %i", string.len(data)))
-      if (string.len(data) == 46) then 
+      if (string.len(data) == (37 + string.len(COMMUNITY))) then 
       snmp_unpackstr = make_snmp_unpackstring(data)
         asn_header, pdu_len, version, comm_name, comm_len, comm_string, req_type, req_len, dgaf1, req_id, dgaf2, varbind_list, varbind, obj_hi, obj_lo = struct.unpack(snmp_unpackstr, data)
         if (obj_hi == 0x2b060102 and obj_lo == 0x1010500) then
@@ -120,13 +108,9 @@ function start_server()
           return_str = make_oid_response( comm_string, req_id)
           s:send(port, ip, return_str)
         end
-
-      elseif (string.len(data) == 50) then
-
+      elseif (string.len(data) == (41 + string.len(COMMUNITY))) then
         snmp_unpackstr = make_snmp_unpackstring(data)
         asn_header, pdu_len, version, comm_name, comm_len, comm_string, req_type, dgaf1, req_id, dgaf2, varbind_list, varbind, obj_hi, obj_lo, obj_really_low = struct.unpack(snmp_unpackstr, data)
-        print (string.format("0x%x", req_type))
-        print (string.format("obj_hi: 0x%x, obj_low: 0x%x, obj_really_low: 0x%x", obj_hi, obj_lo, obj_really_low))
         if (req_type == 0x0a120) then
             if (obj_hi == 0x650d1002 and obj_lo == 0x10105 and obj_really_low == 0x32) then
                 return_str = make_temperature_integer_response(comm_len, comm_string, req_id)
@@ -141,13 +125,10 @@ function start_server()
                 s:send(port, ip, return_str)
             end
         end
-      elseif (string.len(data) == 51) then
+      elseif (string.len(data) == (42 + string.len(COMMUNITY))) then
         snmp_unpackstr = make_snmp_unpackstring(data)
-
         -- output_str = '> I1 I1 I3 I1 I1 c' .. comm_len  .. ' I1 I1 I2 I4 I8 I2 I2 I6 I6 I3'
         asn_header, pdu_len, version, comm_name, comm_len, comm_string, req_type, dgaf1, req_id, dgaf2, varbind_list, varbind, obj_hi, obj_lo, obj_really_low = struct.unpack(snmp_unpackstr, data)
-        print (string.format("0x%x", req_type))
-        print (string.format("obj_hi: 0x%x, obj_low: 0x%x, obj_really_low: 0x%x", obj_hi, obj_lo, obj_really_low))
             if (obj_hi == 0x104018f and obj_lo == 0x10020101) then
               -- 1.3.6.1.4.1.2021.13.16.2.1.1.13
                 if (req_type == 0xa021) then
@@ -175,26 +156,21 @@ function start_server()
                 s:send(port, ip, return_str)
               end
             end
-
-      elseif (string.len(data) == 43) then
-        print("we have a snmpgetnext packet")
+      elseif (string.len(data) == (34 + string.len(COMMUNITY))) then
         snmp_unpackstr = make_snmp_unpackstring(data)
         asn_header, pdu_len, small_stuff, stuff, community_str, something, request_id, error_data, varbind_hi, varbind_lo, varbind_bottom = struct.unpack(snmp_unpackstr, data)
         if (varbind_hi == 0x30090605 and varbind_lo == 0x2b060102 and varbind_bottom == 0x10500) then
-            print("sending sysname response to getnext")
             return_str = make_get_next_response_sysname(community_str, request_id, 'monitor1')
             s:send(port, ip, return_str)
         end
-      elseif (string.len(data) == 47) then
-        print("walk packet for the sensors mib")
+      elseif (string.len(data) == (38 + string.len(COMMUNITY))) then
         snmp_unpackstr = make_snmp_unpackstring(data)
         asn_header, pdu_len, small_stuff, stuff, other_stuff, community_str, req_type, req_id, placeholder_1, error_status, placeholder_2, error_index, placeholder_3, obj_hi, obj_mid, obj_lo = struct.unpack(snmp_unpackstr, data)
         if (req_type ==  0xa11d0204 and obj_hi == 0x06092b06 and obj_mid == 0x0104018f and obj_lo == 0x0650d1005) then
-                print("sending the packet")
               return_str = make_temperature_integer_response(other_stuff, community_str, req_id)
               s:send(port, ip, return_str)
         end
-      elseif (string.len(data) == 49) then
+      elseif (string.len(data) == (40 + string.len(COMMUNITY))) then
         --length of a getnext for 1.3.6.1.4.1.2021.13.16.2.1
         --output_str = '> I1 I1 I3 I1 I1 c' .. com_len
         snmp_unpackstr = make_snmp_unpackstring(data)
@@ -204,7 +180,6 @@ function start_server()
             s:send(port, ip, return_str)
         end
       end
-
 	end)
 end
 
@@ -221,11 +196,8 @@ function check_connection()
             print("not on the wifi just yet")
             tmr.alarm(0,2500,0,check_connection) 
         end
-
     end
-    
 end
-
 function GET_18B20_TEMP()
     ow.reset(PIN_18B20)
     ow.select(PIN_18B20, ADDR_18B20)
@@ -234,23 +206,18 @@ function GET_18B20_TEMP()
     present = ow.reset(PIN_18B20)
     ow.select(PIN_18B20, ADDR_18B20)
     ow.write(PIN_18B20,0xBE,1)
-    print("P="..present)  
     data = nil
     data = string.char(ow.read(PIN_18B20))
     for i = 1, 8 do
         data = data .. string.char(ow.read(PIN_18B20))
     end
-    print(data:byte(1,9))
     crc = ow.crc8(string.sub(data,1,8))
-    print("CRC="..crc)
     if crc == data:byte(9) then
        t = (data:byte(1) + data:byte(2) * 256) * 625
        TEMPERATURE = t / 10
        t1 = t / 10000
-       print("Temperature="..t1.." Centigrade")
     end
 end
-
 function INIT_18B20()
     ow.setup(PIN_18B20)
     count = 0
@@ -267,12 +234,10 @@ function INIT_18B20()
     end
     crc = ow.crc8(string.sub(addr,1,7))
     if crc == addr:byte(8) then
-        print(string.format("0x%x, we have an 18B20, getting temp",addr:byte(1)))
         ADDR_18B20 = addr
         GET_18B20_TEMP()
     end
 end
-
 print("Starting system")
 ip_address = wifi.sta.getip()
 INIT_18B20()
