@@ -16,8 +16,8 @@ end
 function make_get_next_response_sysname(community, request_id, sysname)
    community_len = string.len(community)
    sysname_len = string.len(sysname)
-   pack_str = '> I4 I1 I1 I1 c' .. community_len .. 'I4 I4 I3 I3 I1 I1 I1 I1 I1 I1 I4 I2 I2 I1 I1 c' .. sysname_len
-   return struct.pack(pack_str, 0x30340201, 0x00, 0x04, community_len, community,
+   pack_str = '> I1 I1 I2 I1 I1 I1 c' .. community_len .. 'I4 I4 I3 I3 I1 I1 I1 I1 I1 I1 I4 I2 I2 I1 I1 c' .. sysname_len
+   return struct.pack(pack_str, 0x30, 0x2B + community_len, 0x0201, 0x00, 0x04, community_len, community,
    0xA2240204, request_id, 0x020100, 0x020100, 0x30, 0x0E + sysname_len, 0x30,
    0x0C + sysname_len, 0x06, sysname_len, 0x2b060102, 0x0101, 0x0500, 0x04, sysname_len,
    sysname)
