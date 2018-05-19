@@ -1,0 +1,107 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+LIBS:ESP8266
+LIBS:maxim
+LIBS:Sensor_Temperature
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title "ESP8266 Thermometer"
+Date "2018-05-19"
+Rev "1"
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L NodeMCU_1.0_(ESP-12E) U1
+U 1 1 5B005849
+P 5600 3250
+F 0 "U1" H 5600 4100 60  0000 C CNN
+F 1 "NodeMCU_1.0_(ESP-12E)" H 5600 2400 60  0000 C CNN
+F 2 "" H 5000 2400 60  0000 C CNN
+F 3 "" H 5000 2400 60  0000 C CNN
+	1    5600 3250
+	1    0    0    -1  
+$EndComp
+$Comp
+L DS18B20 U2
+U 1 1 5B005F2C
+P 3450 2800
+F 0 "U2" H 3300 3050 50  0000 C CNN
+F 1 "DS18B20" H 3700 3050 50  0000 C CNN
+F 2 "Package_TO_SOT_THT:TO-92_Inline" H 2450 2550 50  0001 C CNN
+F 3 "" H 3300 3050 50  0001 C CNN
+	1    3450 2800
+	1    0    0    -1  
+$EndComp
+$Comp
+L R R1
+U 1 1 5B006035
+P 4100 3100
+F 0 "R1" V 4180 3100 50  0000 C CNN
+F 1 "4.7K" V 4100 3100 50  0000 C CNN
+F 2 "" V 4030 3100 50  0001 C CNN
+F 3 "" H 4100 3100 50  0001 C CNN
+	1    4100 3100
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4100 3250 4100 3550
+Wire Wire Line
+	4100 3550 4800 3550
+Wire Wire Line
+	3750 2800 4100 2800
+Wire Wire Line
+	4100 1800 4100 2950
+Wire Wire Line
+	6400 2950 6900 2950
+Wire Wire Line
+	6900 2950 6900 1800
+Wire Wire Line
+	6900 1800 4100 1800
+Connection ~ 4100 2800
+Wire Wire Line
+	2650 3850 4800 3850
+Wire Wire Line
+	3450 3850 3450 3100
+Wire Wire Line
+	3450 2500 3450 2250
+Wire Wire Line
+	3450 2250 2650 2250
+Wire Wire Line
+	2650 2250 2650 3850
+Connection ~ 3450 3850
+$EndSCHEMATC
