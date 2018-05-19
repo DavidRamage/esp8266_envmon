@@ -7,6 +7,9 @@ PIN_18B20 = 4
 ADDR_18B20 = nil
 TEMPERATURE = 0
 COMMUNITY = "MY_COMMUNITY_STRING"
+SYSLOCATION = "somewhere good"
+VERSION = "Environment Monitor 0.01a"
+SYSNAME  = "monitor1"
 function make_oid_response(community, request_id)
     community_len = string.len(community)
     pack_str = '> I1 I1 I3 I2 c' .. community_len .. 'I4 I4 I2 I2 I2 I2 I2 I2 I4 I4 I2 I4 I4 I2'
@@ -16,11 +19,19 @@ end
 function make_get_next_response_sysname(community, request_id, sysname)
    community_len = string.len(community)
    sysname_len = string.len(sysname)
-   pack_str = '> I1 I1 I2 I1 I1 I1 c' .. community_len .. 'I4 I4 I3 I3 I1 I1 I1 I1 I1 I1 I4 I2 I2 I1 I1 c' .. sysname_len
-   return struct.pack(pack_str, 0x30, 0x2B + community_len, 0x0201, 0x00, 0x04, community_len, community,
-   0xA2240204, request_id, 0x020100, 0x020100, 0x30, 0x0E + sysname_len, 0x30,
-   0x0C + sysname_len, 0x06, sysname_len, 0x2b060102, 0x0101, 0x0500, 0x04, sysname_len,
+   pack_str = '> I1 I1 I1 I1 I1 I1 I1 c' .. community_len .. 'I1 I1 I1 I1 I4 I3 I3 I1 I1 I1 I1 I1 I1 I4 I2 I2 I1 I1 c' .. sysname_len
+   return struct.pack(pack_str, 0x30, 0x23 + community_len + sysname_len, 0x02, 0x01, 0x00, 0x04, community_len, community,
+   0xA2, 0x1C + sysname_len, 0x02, 0x04, request_id, 0x020100, 0x020100, 0x30, 0x0E + sysname_len, 0x30,
+   0x0C + sysname_len, 0x06, sysname_len -3, 0x2b060102, 0x0101, 0x0500, 0x04, sysname_len,
    sysname)
+end
+function make_get_sysname_response(sysname, comm_len, community, request_id, varbind, obj_hi, obj_lo)
+    sysname_len = string.len(sysname)
+    community_len = string.len(community)
+    pack_str = '> I1 I1 I1 I1 I1 I1 I1 c' .. comm_len .. 'I1 I1 I1 I1 I4 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I2 I4 I4 I1 I1 c' .. sysname_len
+    return struct.pack(pack_str, 0x30, 0x23 + sysname_len + community_len, 0x02, 0x01, 0x00, 0x04, community_len,
+        community, 0xA2, 0x1C + sysname_len, 0x02, 0x04, request_id, 0x02, 0x01, 0x00, 0x02,
+        0x01, 0x00, 0x30, 0x0E + sysname_len, 0x30, 0x0C + sysname_len, varbind, obj_hi, obj_lo, 0x04, sysname_len, sysname)
 end
 function make_temperature_value_response(comm_len, community, request_id)
     community_len = string.len(community)
@@ -47,14 +58,7 @@ function make_get_temp_name_response(temp_name, comm_len, community, request_id,
         community, 0xA2, 0x21 + tempname_len, 0x02, 0x04, request_id, 0x02, 0x01, 0x00, 0x02,
         0x01, 0x00, 0x30, 0x13 + tempname_len, 0x30, 0x11 + tempname_len, varbind, 0x2b, 0x06, obj_hi, 0x65, 0x0d, obj_lo, 0x0d, 0x04, tempname_len, temp_name)
 end
-function make_get_sysname_response(sysname, comm_len, community, request_id, varbind, obj_hi, obj_lo)
-    sysname_len = string.len(sysname)
-    community_len = string.len(community)
-    pack_str = '> I1 I1 I1 I1 I1 I1 I1 c' .. comm_len .. 'I1 I1 I1 I1 I4 I1 I1 I1 I1 I1 I1 I1 I1 I1 I1 I2 I4 I4 I1 I1 c' .. sysname_len
-    return struct.pack(pack_str, 0x30, 0x23 + sysname_len + community_len, 0x02, 0x01, 0x00, 0x04, community_len,
-        community, 0xA2, 0x1C + sysname_len, 0x02, 0x04, request_id, 0x02, 0x01, 0x00, 0x02,
-        0x01, 0x00, 0x30, 0x0E + sysname_len, 0x30, 0x0C + sysname_len, varbind, obj_hi, obj_lo, 0x04, sysname_len, sysname)
-end
+
 function make_snmp_unpackstring(data)
     asn_header, pdu_len, version, comm_name, comm_len, excess = struct.unpack('> I1 I1 I3 I1 I1 s', data)  
     if (string.len(data) == (37 + string.len(COMMUNITY))) then
@@ -90,19 +94,20 @@ function start_server()
         if (obj_hi == 0x2b060102 and obj_lo == 0x1010500) then
           -- 1.3.6.1.2.1.1.5.0 - sysname
           if  req_type == 0xa1 then
-            return_str = make_get_sysname_response('someplace good', comm_len, comm_string, req_id, varbind, 0x2b060102, 0x1010600)
+            return_str = make_get_sysname_response(SYSLOCATION, comm_len, comm_string, req_id, varbind, 0x2b060102, 0x1010600)
             s:send(port, ip, return_str)
           else
-            return_str = make_get_sysname_response('monitor1', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
+            print("Calling make_get_sysname_response")
+            return_str = make_get_sysname_response(SYSNAME, comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
             s:send(port, ip, return_str)
           end
         elseif (obj_hi == 0x2b060102 and obj_lo == 0x1010600 and req_type == 0xa0) then
           -- 1.3.6.1.2.1.1.6.0 - syslocation
-          return_str = make_get_sysname_response('someplace good', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
+          return_str = make_get_sysname_response(SYSLOCATION, comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
           s:send(port, ip, return_str)
         elseif (obj_hi == 0x2b060102 and obj_lo == 0x1010100 and req_type == 0xa0) then
           -- 1.3.6.1.2.1.1.1.0 - os
-          return_str = make_get_sysname_response('Environment Monitor 0.01a', comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
+          return_str = make_get_sysname_response(VERSION, comm_len, comm_string, req_id, varbind, obj_hi, obj_lo)
           s:send(port, ip, return_str)
         elseif (obj_hi == 0x2b060102 and obj_lo == 0x1010200 and req_type == 0xa0) then
           return_str = make_oid_response( comm_string, req_id)
@@ -160,7 +165,8 @@ function start_server()
         snmp_unpackstr = make_snmp_unpackstring(data)
         asn_header, pdu_len, small_stuff, stuff, community_str, something, request_id, error_data, varbind_hi, varbind_lo, varbind_bottom = struct.unpack(snmp_unpackstr, data)
         if (varbind_hi == 0x30090605 and varbind_lo == 0x2b060102 and varbind_bottom == 0x10500) then
-            return_str = make_get_next_response_sysname(community_str, request_id, 'monitor1')
+            print("calling make_get_next_response_sysname")
+            return_str = make_get_next_response_sysname(community_str, request_id, SYSNAME)
             s:send(port, ip, return_str)
         end
       elseif (string.len(data) == (38 + string.len(COMMUNITY))) then
@@ -172,7 +178,6 @@ function start_server()
         end
       elseif (string.len(data) == (40 + string.len(COMMUNITY))) then
         --length of a getnext for 1.3.6.1.4.1.2021.13.16.2.1
-        --output_str = '> I1 I1 I3 I1 I1 c' .. com_len
         snmp_unpackstr = make_snmp_unpackstring(data)
         asn_header, pdu_len, small_stuff, stuff, other_stuff, community_str, req_type, nonsense, req_id, nonsense, obj_hi, obj_med, obj_lo, obj_bottom = struct.unpack(snmp_unpackstr, data)
         if (obj_hi == 0x60b2b06 and obj_med == 0x104018f and obj_lo == 0x650d1002 and obj_bottom == 0x10500) then
